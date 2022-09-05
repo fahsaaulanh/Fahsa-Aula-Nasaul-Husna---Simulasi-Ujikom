@@ -73,13 +73,104 @@ namespace MatchPicture.Scene.Gameplay
             _removePairs = 0;
 
             LoadMaterials();
+
+            CurrentGameState = GameState.MovingOnPositions;
             SpawnTileMesh(rows, columns);
             MoveTile(rows, columns, _startPos, _offset);
+        }
+        void Update()
+        {
+            if (CurrentGameState == GameState.DeletingPuzzles)
+            {
+                if (CurrentPuzzleState == PuzzleState.CanRotate)
+                {
+                    DestroyPicture();
+                }
+            }
+
+            if (CurrentGameState == GameState.FlipBack)
+            {
+                if (CurrentPuzzleState == PuzzleState.CanRotate && _corutineStarted == false)
+                {
+                    StartCoroutine(FlipBack());
+                }
+            }
+
         }
 
         public void CheckPicture()
         {
+            CurrentGameState = GameState.Checking;
+            _revealedPicNumber = 0;
 
+            for (int id = 0; id < _tiles.Count; id++)
+            {
+                if (_tiles[id].Revealed && _revealedPicNumber < 2)
+                {
+                    if (_revealedPicNumber == 0)
+                    {
+                        _firstRevealedPic = id;
+                        _revealedPicNumber++;
+                    }
+                    else if (_revealedPicNumber == 1)
+                    {
+                        _secondRevealedPic = id;
+                        _revealedPicNumber++;
+                    }
+                }
+
+            }
+
+            if (_revealedPicNumber == 2)
+            {
+                if (_tiles[_firstRevealedPic].GetIndex() == _tiles[_secondRevealedPic].GetIndex() && _firstRevealedPic != _secondRevealedPic)
+                {
+                    CurrentGameState = GameState.DeletingPuzzles;
+                    _picToDestroy1 = _firstRevealedPic;
+                    _picToDestroy2 = _secondRevealedPic;
+                }
+                else
+                {
+                    CurrentGameState = GameState.FlipBack;
+                }
+
+            }
+
+            CurrentPuzzleState = TileGroup.PuzzleState.CanRotate;
+
+            if (CurrentGameState == GameState.Checking)
+            {
+                CurrentGameState = GameState.NoAction;
+            }
+        }
+
+        private void DestroyPicture()
+        {
+            PuzzleRevealedNumber = RevealedState.NoRevealed;
+            _tiles[_picToDestroy1].Deactivate();
+            _tiles[_picToDestroy2].Deactivate();
+            _revealedPicNumber = 0;
+            _removePairs++;
+            CurrentGameState = GameState.NoAction;
+            CurrentPuzzleState = PuzzleState.CanRotate;
+
+        }
+
+        private IEnumerator FlipBack()
+        {
+            _corutineStarted = true;
+            yield return new WaitForSeconds(0.5f);
+
+            _tiles[_firstRevealedPic].FlipBack();
+            _tiles[_secondRevealedPic].FlipBack();
+
+            _tiles[_firstRevealedPic].Revealed = false;
+            _tiles[_secondRevealedPic].Revealed = false;
+
+            PuzzleRevealedNumber = RevealedState.NoRevealed;
+            CurrentGameState = GameState.NoAction;
+
+            _corutineStarted = false;
         }
 
         private void LoadMaterials()

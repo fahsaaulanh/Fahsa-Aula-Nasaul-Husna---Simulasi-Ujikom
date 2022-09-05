@@ -29,12 +29,6 @@ namespace MatchPicture.Scene.Gameplay
             _currentRotation = gameObject.transform.rotation;
         }
 
-
-        void Update()
-        {
-
-        }
-
         private void OnMouseDown()
         {
             if (_clicked == false)
